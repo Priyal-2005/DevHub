@@ -1,50 +1,50 @@
-// =============================================
-// Auth Controller - Request/Response Layer
-// =============================================
-
-const { ApiResponse, asyncHandler } = require("../utils");
+const passport = require("passport");
 const authService = require("../services/auth.service");
+const { signToken } = require("../utils/jwt");
 
-// ─── Register ──────────────────────────────────
+const register = async (req, res, next) => {
+  try {
+    const user = await authService.register(req.validated.body);
+    const token = signToken(user.id);
+    res.status(201).json({ token, user });
+  } catch (error) {
+    next(error);
+  }
+};
 
-const register = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+const login = async (req, res, next) => {
+  try {
+    const user = await authService.login(req.validated.body);
+    const token = signToken(user.id);
+    res.json({
+      token,
+      user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, provider: user.provider },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-  const { user, token } = await authService.register({ name, email, password });
+const me = async (req, res, next) => {
+  try {
+    const user = await authService.getMe(req.user.id);
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};
 
-  const response = ApiResponse.created({ user, token }, "Registration successful");
-  res.status(response.statusCode).json(response);
+const google = passport.authenticate("google", {
+  scope: ["profile", "email"],
+  session: false,
 });
 
-// ─── Login ─────────────────────────────────────
+const googleCallback = (req, res, next) => {
+  passport.authenticate("google", { session: false }, (error, user) => {
+    if (error || !user) return next(error || new Error("Google auth failed"));
+    const token = signToken(user.id);
+    return res.json({ token, user });
+  })(req, res, next);
+};
 
-const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-
-  const { user, token } = await authService.login({ email, password });
-
-  const response = ApiResponse.ok({ user, token }, "Login successful");
-  res.status(response.statusCode).json(response);
-});
-
-// ─── Get Current User ──────────────────────────
-
-const getMe = asyncHandler(async (req, res) => {
-  const user = await authService.getMe(req.user.id);
-
-  const response = ApiResponse.ok({ user }, "User profile retrieved");
-  res.status(response.statusCode).json(response);
-});
-
-// ─── Google OAuth Callback ─────────────────────
-
-const googleCallback = asyncHandler(async (req, res) => {
-  // Passport attaches user to req after successful auth
-  const { user, token } = await authService.findOrCreateGoogleUser(req.user);
-
-  // Redirect to frontend with token (adjust URL for production)
-  const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
-  res.redirect(`${clientUrl}/auth/callback?token=${token}`);
-});
-
-module.exports = { register, login, getMe, googleCallback };
+module.exports = { register, login, me, google, googleCallback };

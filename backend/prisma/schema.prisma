@@ -1,53 +1,68 @@
-// =============================================
-// DevHub - Prisma Schema
-// =============================================
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "mysql"
-}
-
-// ─── User Model ──────────────────────────────
-
-enum AuthProvider {
-  LOCAL
-  GOOGLE
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String       @id @default(cuid())
+  id        String   @id @default(cuid())
   name      String
-  email     String       @unique
-  password  String?      // Nullable for OAuth users
+  email     String   @unique
+  password  String?
   avatar    String?
-  bio       String?      @db.Text
-  provider  AuthProvider @default(LOCAL)
+  provider  String   @default("local")
+  createdAt DateTime @default(now())
 
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-
-  sessions  Session[]
-
-  @@map("users")
+  profile   Profile?
+  posts     Post[]
+  comments  Comment[]
+  likes     Like[]
 }
 
-// ─── Session Model ───────────────────────────
+model Profile {
+  id           String @id @default(cuid())
+  userId       String @unique
+  bio          String?
+  skills       Json?
+  githubUrl    String?
+  portfolioUrl String?
 
-model Session {
-  id           String   @id @default(cuid())
-  userId       String
-  refreshToken String   @db.Text
-  userAgent    String?
-  ipAddress    String?
-  expiresAt    DateTime
+  user User @relation(fields: [userId], references: [id])
+}
 
-  createdAt    DateTime @default(now())
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  authorId  String
+  createdAt DateTime @default(now())
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  author   User      @relation(fields: [authorId], references: [id])
+  comments Comment[]
+  likes    Like[]
+}
 
-  @@index([userId])
-  @@map("sessions")
+model Comment {
+  id        String  @id @default(cuid())
+  content   String
+  postId    String
+  userId    String
+  parentId  String?
+
+  post   Post @relation(fields: [postId], references: [id])
+  user   User @relation(fields: [userId], references: [id])
+}
+
+model Like {
+  id     String @id @default(cuid())
+  userId String
+  postId String
+
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId])
 }

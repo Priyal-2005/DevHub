@@ -1,176 +1,54 @@
-// =============================================
-// Auth Service - Business Logic Layer
-// =============================================
-
 const bcrypt = require("bcryptjs");
 const prisma = require("../prisma/client");
-const { ApiError, generateToken } = require("../utils");
+const AppError = require("../utils/appError");
 
-const SALT_ROUNDS = 12;
+const register = async ({ name, email, password, avatar }) => {
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw new AppError(409, "Email already in use");
 
-class AuthService {
-  // ─── Register ────────────────────────────────
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-  /**
-   * Register a new user with email + password
-   * @param {Object} data - { name, email, password }
-   * @returns {Object} { user, token }
-   */
-  async register({ name, email, password }) {
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+  return prisma.user.create({
+    data: { name, email, password: hashedPassword, avatar, provider: "local" },
+    select: { id: true, name: true, email: true, avatar: true, provider: true },
+  });
+};
 
-    if (existingUser) {
-      throw ApiError.conflict("A user with this email already exists");
-    }
+const login = async ({ email, password }) => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !user.password) throw new AppError(401, "Invalid credentials");
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) throw new AppError(401, "Invalid credentials");
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        provider: "LOCAL",
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatar: true,
-        bio: true,
-        provider: true,
-        createdAt: true,
-      },
-    });
+  return user;
+};
 
-    // Generate JWT
-    const token = generateToken({ id: user.id, email: user.email });
+const findOrCreateGoogleUser = async (profile) => {
+  const email = profile.emails?.[0]?.value;
+  if (!email) throw new AppError(400, "Google email not available");
 
-    return { user, token };
-  }
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return existing;
 
-  // ─── Login ───────────────────────────────────
+  return prisma.user.create({
+    data: {
+      name: profile.displayName || "Google User",
+      email,
+      avatar: profile.photos?.[0]?.value,
+      provider: "google",
+    },
+  });
+};
 
-  /**
-   * Authenticate user with email + password
-   * @param {Object} data - { email, password }
-   * @returns {Object} { user, token }
-   */
-  async login({ email, password }) {
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+const getMe = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true, avatar: true, provider: true, createdAt: true },
+  });
 
-    if (!user) {
-      throw ApiError.unauthorized("Invalid email or password");
-    }
+  if (!user) throw new AppError(404, "User not found");
+  return user;
+};
 
-    // Check if user registered via OAuth (no password)
-    if (!user.password) {
-      throw ApiError.unauthorized(
-        "This account uses Google sign-in. Please log in with Google."
-      );
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-
-    if (!isPasswordValid) {
-      throw ApiError.unauthorized("Invalid email or password");
-    }
-
-    // Generate JWT
-    const token = generateToken({ id: user.id, email: user.email });
-
-    // Strip password from response
-    const { password: _, ...userWithoutPassword } = user;
-
-    return { user: userWithoutPassword, token };
-  }
-
-  // ─── Get Current User ───────────────────────
-
-  /**
-   * Get the currently authenticated user's profile
-   * @param {string} userId
-   * @returns {Object} User profile
-   */
-  async getMe(userId) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatar: true,
-        bio: true,
-        provider: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (!user) {
-      throw ApiError.notFound("User not found");
-    }
-
-    return user;
-  }
-
-  // ─── Google OAuth ────────────────────────────
-
-  /**
-   * Find or create user from Google OAuth profile
-   * @param {Object} profile - Google profile data
-   * @returns {Object} { user, token }
-   */
-  async findOrCreateGoogleUser(profile) {
-    const { id: googleId, emails, displayName, photos } = profile;
-    const email = emails[0].value;
-    const avatar = photos?.[0]?.value || null;
-
-    // Check if user exists
-    let user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (user) {
-      // If user exists but registered locally, update provider info
-      if (user.provider === "LOCAL") {
-        user = await prisma.user.update({
-          where: { email },
-          data: {
-            provider: "GOOGLE",
-            avatar: user.avatar || avatar,
-          },
-        });
-      }
-    } else {
-      // Create new user
-      user = await prisma.user.create({
-        data: {
-          name: displayName,
-          email,
-          avatar,
-          provider: "GOOGLE",
-        },
-      });
-    }
-
-    // Generate JWT
-    const token = generateToken({ id: user.id, email: user.email });
-
-    // Strip password
-    const { password: _, ...userWithoutPassword } = user;
-
-    return { user: userWithoutPassword, token };
-  }
-}
-
-module.exports = new AuthService();
+module.exports = { register, login, findOrCreateGoogleUser, getMe };

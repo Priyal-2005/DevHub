@@ -1,40 +1,28 @@
-// =============================================
-// Passport - Google OAuth Strategy
-// =============================================
-
 const passport = require("passport");
-const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const { Strategy: GoogleStrategy } = require("passport-google-oauth20");
 
-const configurePassport = () => {
+const configurePassport = (authService) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return;
+  }
+
   passport.use(
     new GoogleStrategy(
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
         callbackURL: process.env.GOOGLE_CALLBACK_URL,
-        scope: ["profile", "email"],
       },
-      // Verification callback — pass profile to route handler
       async (_accessToken, _refreshToken, profile, done) => {
         try {
-          // We pass the raw profile to the controller/service layer
-          // instead of doing DB work here (keeps strategy thin)
-          return done(null, profile);
+          const user = await authService.findOrCreateGoogleUser(profile);
+          done(null, user);
         } catch (error) {
-          return done(error, null);
+          done(error, null);
         }
       }
     )
   );
-
-  // Serialize / Deserialize (minimal — we use JWT, not sessions)
-  passport.serializeUser((user, done) => {
-    done(null, user);
-  });
-
-  passport.deserializeUser((user, done) => {
-    done(null, user);
-  });
 };
 
 module.exports = configurePassport;
