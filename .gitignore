@@ -1,0 +1,26 @@
+# Node
+node_modules/
+.env
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+
+# Antigravity / Cursor / local tools
+.antigravity/
+*.local
+
+# Build
+dist/
+build/
+
+# Prisma
+prisma/dev.db
+.prisma-cache/
+generated/
+
+# Misc
+coverage/
