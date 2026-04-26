@@ -1,0 +1,53 @@
+// =============================================
+// DevHub - Prisma Schema
+// =============================================
+
+generator client {
+  provider = "prisma-client"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ─── User Model ──────────────────────────────
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+model User {
+  id        String       @id @default(cuid())
+  name      String
+  email     String       @unique
+  password  String?      // Nullable for OAuth users
+  avatar    String?
+  bio       String?      @db.Text
+  provider  AuthProvider @default(LOCAL)
+
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  sessions  Session[]
+
+  @@map("users")
+}
+
+// ─── Session Model ───────────────────────────
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  refreshToken String   @db.Text
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
