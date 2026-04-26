@@ -1,6 +1,12 @@
 # Node
 node_modules/
 .env
+.env.*
+.DS_Store
+.antigravity/
+.vscode/
+.prisma-cache/
+generated/
 
 # Logs
 logs/
