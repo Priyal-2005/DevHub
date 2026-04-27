@@ -59,6 +59,10 @@ function RegisterPage() {
     }
   };
 
+  const handleGoogleRegister = () => {
+    window.location.href = "http://localhost:5001/api/auth/google";
+  };
+
   return (
     <Layout>
       <section className="mx-auto flex min-h-[calc(100vh-73px)] max-w-6xl items-center px-4 py-16 sm:px-6">
@@ -81,6 +85,19 @@ function RegisterPage() {
               <div>
                 <h2 className="text-2xl font-semibold text-white">Register</h2>
                 <p className="mt-2 text-sm text-slate-400">Create your DevHub account with email and password.</p>
+              </div>
+
+              <button type="button" onClick={handleGoogleRegister} className="button-secondary w-full">
+                <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
+                  G
+                </span>
+                Continue with Google
+              </button>
+
+              <div className="flex items-center gap-3 text-xs uppercase tracking-[0.2em] text-slate-500">
+                <span className="h-px flex-1 bg-slate-800" />
+                <span>or</span>
+                <span className="h-px flex-1 bg-slate-800" />
               </div>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
