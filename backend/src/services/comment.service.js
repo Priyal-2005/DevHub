@@ -10,9 +10,25 @@ const createComment = async (userId, payload) => {
     if (!parent) throw new AppError(404, "Parent comment not found");
   }
 
-  return prisma.comment.create({
+  const comment = await prisma.comment.create({
     data: { ...payload, userId },
+    include: { user: { select: { id: true, name: true, avatar: true } } },
   });
+
+  if (post.authorId !== userId) {
+    await prisma.notification.create({
+      data: {
+        recipientId: post.authorId,
+        actorId: userId,
+        type: "comment",
+        message: "commented on your post.",
+        postId: post.id,
+        commentId: comment.id,
+      },
+    });
+  }
+
+  return comment;
 };
 
 module.exports = { createComment };

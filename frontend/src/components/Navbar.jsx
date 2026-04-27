@@ -18,6 +18,25 @@ function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3">
+          {isAuthenticated ? (
+            <>
+              <Link to="/feed" className="hidden text-sm font-medium text-slate-300 hover:text-white sm:inline-flex">
+                Feed
+              </Link>
+              {user ? (
+                <Link
+                  to={`/profile/${user.id}`}
+                  className="hidden text-sm font-medium text-slate-300 hover:text-white sm:inline-flex"
+                >
+                  Profile
+                </Link>
+              ) : null}
+              <Link to="/notifications" className="hidden text-sm font-medium text-slate-300 hover:text-white sm:inline-flex">
+                Notifications
+              </Link>
+            </>
+          ) : null}
+
           {isAuthenticated && user ? (
             <span className="hidden rounded-full border border-slate-700 px-4 py-2 text-sm text-slate-300 sm:inline-flex">
               {user.name}

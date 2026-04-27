@@ -6,8 +6,9 @@ const configurePassport = require("./config/passport");
 
 configurePassport(authService);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 app.listen(PORT, () => {
   console.log(`DevHub backend listening on port ${PORT}`);
+  console.log(`http://localhost:${PORT}`);
 });

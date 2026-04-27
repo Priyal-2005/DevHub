@@ -9,6 +9,16 @@ const createPost = async (req, res, next) => {
   }
 };
 
+const getFeed = async (req, res, next) => {
+  try {
+    const { page, limit } = req.validated.query;
+    const data = await postService.getFeed(req.user.id, page, limit);
+    res.json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getPosts = async (req, res, next) => {
   try {
     const { page, limit } = req.validated.query;
@@ -28,4 +38,4 @@ const getPostById = async (req, res, next) => {
   }
 };
 
-module.exports = { createPost, getPosts, getPostById };
+module.exports = { createPost, getFeed, getPosts, getPostById };

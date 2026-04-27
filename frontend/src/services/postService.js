@@ -1,23 +1,21 @@
 import api from "./api";
 
-const unwrap = (response) => response.data?.data;
-
 export const createPost = async (payload) => {
   const response = await api.post("/posts", payload);
-  return unwrap(response);
+  return response.data;
 };
 
 export const getPosts = async (params = {}) => {
   const response = await api.get("/posts", { params });
-  return unwrap(response);
+  return response.data;
 };
 
 export const getPostById = async (postId) => {
   const response = await api.get(`/posts/${postId}`);
-  return unwrap(response);
+  return response.data;
 };
 
 export const toggleLike = async (postId) => {
-  const response = await api.post(`/posts/${postId}/like`);
-  return unwrap(response);
+  const response = await api.post("/like", { postId });
+  return response.data;
 };
