@@ -5,10 +5,16 @@ const AppError = require("../utils/appError");
 
 const register = async (req, res, next) => {
   try {
+    console.log("[auth/register] Attempt", { email: req.validated.body?.email });
     const user = await authService.register(req.validated.body);
     const token = signToken(user.id);
-    res.status(201).json({ token, user });
+    res.status(201).json({ success: true, data: { token, user } });
   } catch (error) {
+    console.error("[auth/register] Failed", {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+    });
     next(error);
   }
 };
@@ -18,8 +24,11 @@ const login = async (req, res, next) => {
     const user = await authService.login(req.validated.body);
     const token = signToken(user.id);
     res.json({
-      token,
-      user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, provider: user.provider },
+      success: true,
+      data: {
+        token,
+        user: { id: user.id, name: user.name, email: user.email, avatar: user.avatar, provider: user.provider },
+      },
     });
   } catch (error) {
     next(error);
@@ -29,7 +38,7 @@ const login = async (req, res, next) => {
 const me = async (req, res, next) => {
   try {
     const user = await authService.getMe(req.user.id);
-    res.json(user);
+    res.json({ success: true, data: user });
   } catch (error) {
     next(error);
   }

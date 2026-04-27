@@ -1,5 +1,6 @@
 import { createContext, useEffect, useMemo, useState } from "react";
 import { getMe, login as loginRequest, register as registerRequest } from "../services/authService";
+import { setApiAuthToken } from "../services/api";
 import {
   clearStoredToken,
   clearStoredUser,
@@ -42,6 +43,7 @@ export function AuthProvider({ children }) {
     setUser(nextUser);
     setStoredToken(nextToken);
     setStoredUser(nextUser);
+    setApiAuthToken(nextToken);
   };
 
   const clearAuth = () => {
@@ -49,6 +51,7 @@ export function AuthProvider({ children }) {
     setUser(null);
     clearStoredToken();
     clearStoredUser();
+    setApiAuthToken(null);
   };
 
   const login = async (payload) => {

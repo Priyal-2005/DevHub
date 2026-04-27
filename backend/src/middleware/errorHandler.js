@@ -2,6 +2,12 @@ const { ZodError } = require("zod");
 const AppError = require("../utils/appError");
 
 const errorHandler = (err, _req, res, _next) => {
+  console.error("[error]", {
+    name: err.name,
+    message: err.message,
+    code: err.code,
+  });
+
   if (err instanceof ZodError) {
     return res.status(400).json({
       message: "Validation failed",
@@ -16,7 +22,7 @@ const errorHandler = (err, _req, res, _next) => {
     return res.status(err.statusCode).json({ message: err.message });
   }
 
-  return res.status(500).json({ message: "Internal server error" });
+  return res.status(500).json({ message: err.message || "Internal server error" });
 };
 
 module.exports = errorHandler;
